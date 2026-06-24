@@ -135,16 +135,20 @@ function connectBattleWS(sid) {
     S.battle.state = data;
     renderBattle(data);
     if (data.finished) {
-      ws.close();
-      if (data.result) showResult(data.result);
+      if (data.result) {
+        // финальное сообщение с наградами — закрываем и показываем результат
+        ws.close();
+        showResult(data.result);
+      }
+      // иначе ждём следующее сообщение с result (придёт через ~мс)
     }
   };
 
   ws.onclose = () => {
     S.battle.ws = null;
-    // Если бой не закончен — poll каждые 2с как фолбэк
+    // Если бой закончился но result ещё не показан — поллим за результатом
     if (S.battle.sid && !S.battle.result) {
-      setTimeout(() => pollBattleState(sid), 2000);
+      setTimeout(() => pollBattleResult(sid), 500);
     }
   };
 
@@ -167,6 +171,32 @@ async function pollBattleState(sid) {
       setTimeout(() => pollBattleState(sid), 4500);
     }
   } catch (_) {}
+}
+
+// Фолбэк: если WS закрылся раньше чем пришёл result — поллим пока сессия жива
+async function pollBattleResult(sid) {
+  if (S.battle.result) return;
+  try {
+    const data = await api('GET', `/api/battle/${sid}/state`);
+    renderBattle(data);
+    if (data.result) {
+      showResult(data.result);
+    } else if (!data.finished) {
+      // бой ещё идёт — переподключаемся
+      connectBattleWS(sid);
+    } else {
+      // finished но result ещё не готов — ждём чуть-чуть
+      setTimeout(() => pollBattleResult(sid), 800);
+    }
+  } catch (_) {
+    // сессия уже удалена (result был отправлен, но мы его пропустили)
+    // показываем экран "бой завершён" без деталей
+    document.getElementById('result-overlay').classList.add('show');
+    document.getElementById('result-icon').textContent = '⚔️';
+    document.getElementById('result-title').textContent = 'Бой завершён';
+    document.getElementById('result-title').className = 'result-title draw';
+    document.getElementById('result-rewards').innerHTML = '';
+  }
 }
 
 function renderBattleLoading() {

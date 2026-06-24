@@ -509,7 +509,11 @@ async def _webapp_loop(session: B.Session):
             if session.done or session.battle.finished:
                 break
             session.battle.step()
-            await _push_ws(session)
+            # промежуточные ходы — пушим без результата
+            # финальный ход — НЕ пушим здесь, пусть _end_webapp_session
+            # пошлёт одно сообщение сразу с результатом
+            if not session.battle.finished:
+                await _push_ws(session)
     except asyncio.CancelledError:
         return
     await _end_webapp_session(session)
