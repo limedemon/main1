@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: battle-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false   # вводишь вручную в Render Dashboard
+      - key: ADMIN_IDS
+        sync: false
+      - key: DB_PATH
+        value: /opt/render/project/src/bot.db
+    disk:
+      name: botdb
+      mountPath: /opt/render/project/src
+      sizeGB: 1

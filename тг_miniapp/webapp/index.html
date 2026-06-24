@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Battle Bot</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Loading ─────────────────────────────────────────────── -->
+  <div id="screen-loading" class="screen active">
+    <div class="spinner"></div>
+    <div style="color:var(--sub);font-size:14px">Загрузка...</div>
+  </div>
+
+  <!-- ── Main Menu ───────────────────────────────────────────── -->
+  <div id="screen-menu" class="screen">
+    <div class="page-header">
+      <h1>⚔️ Battle Bot</h1>
+      <div class="sub" id="menu-username"></div>
+    </div>
+
+    <div id="menu-stats">
+      <div class="rank-badge">
+        <div>
+          <div class="rank" id="stat-rank">⚜️ Ранг 1</div>
+          <div class="mult" id="stat-mult">×1 к наградам</div>
+        </div>
+      </div>
+      <div class="stat-pill">
+        <span style="font-size:20px">🏆</span>
+        <div><div class="val" id="stat-cups">0</div><div class="lbl">кубки</div></div>
+      </div>
+      <div class="stat-pill">
+        <span style="font-size:20px">💰</span>
+        <div><div class="val" id="stat-coins">0</div><div class="lbl">монеты</div></div>
+      </div>
+      <div id="stat-extras" style="display:contents"></div>
+    </div>
+
+    <div id="menu-events"></div>
+
+    <div id="menu-grid">
+      <div class="menu-btn" onclick="showBattleSelect()">
+        <span class="ico">⚔️</span><span class="lbl">Играть</span>
+      </div>
+      <div class="menu-btn" onclick="loadSummons()">
+        <span class="ico">👤</span><span class="lbl">Суммон</span>
+      </div>
+      <div class="menu-btn" onclick="loadCrates()">
+        <span class="ico">🧳</span><span class="lbl">Крейты</span>
+      </div>
+      <div class="menu-btn" onclick="loadInventory()">
+        <span class="ico">📦</span><span class="lbl">Инвентарь</span>
+      </div>
+      <div class="menu-btn" onclick="loadLeaderboard()">
+        <span class="ico">🏆</span><span class="lbl">Лидерборд</span>
+      </div>
+      <div class="menu-btn" onclick="loadClan()">
+        <span class="ico">🛡</span><span class="lbl">Кланы</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Battle Select ───────────────────────────────────────── -->
+  <div id="screen-battle-select" class="screen">
+    <div class="page-header">
+      <h1>⚔️ Выбор боя</h1>
+    </div>
+    <div class="back-row" onclick="showScreen('menu')">← Главное меню</div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:16px">
+
+      <div class="card">
+        <div class="card-header"><h3>🤖 Бой с ботом</h3></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-success btn-full" onclick="startBotBattle('easy')">
+            😊 Лёгкий — ×0.2 кубков
+          </button>
+          <button class="btn btn-primary btn-full" onclick="startBotBattle('medium')">
+            😐 Средний — ×0.5 кубков
+          </button>
+          <button class="btn btn-danger btn-full" onclick="startBotBattle('hard')">
+            😤 Сложный — ×1.0 кубков
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>🏆 PvP</h3></div>
+        <div class="card-body">
+          <p style="color:var(--sub);font-size:13px;margin-bottom:10px">
+            PvP-бои доступны через Telegram-чат. Используй кнопку «Играть» в боте.
+          </p>
+          <button class="btn btn-secondary btn-full" onclick="TG.close()">
+            Открыть бота
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Battle ──────────────────────────────────────────────── -->
+  <div id="screen-battle" class="screen">
+    <div class="battle-header">
+      <div class="turn" id="battle-turn">Ход 0</div>
+      <div class="vs">⚔ VS ⚔</div>
+      <button class="btn btn-danger btn-sm" onclick="surrenderBattle()">🏳 Сдаться</button>
+    </div>
+
+    <!-- Противник -->
+    <div class="combatant-card" id="c2-card">
+      <div class="c-name" id="c2-name">🤖 Бот</div>
+      <div class="c-unit" id="c2-unit"></div>
+      <div class="c-hp-row">
+        <div class="hp-bar-wrap" style="flex:1">
+          <div class="hp-bar-fill" id="c2-hp-bar" style="width:100%"></div>
+        </div>
+        <div class="c-hp-txt" id="c2-hp-txt">— / —</div>
+      </div>
+      <div class="c-dmg" id="c2-dmg"></div>
+      <div class="c-items" id="c2-items"></div>
+      <div class="c-effects" id="c2-effects"></div>
+    </div>
+
+    <!-- Игрок -->
+    <div class="combatant-card" id="c1-card">
+      <div class="c-name" id="c1-name">👤 Ты</div>
+      <div class="c-unit" id="c1-unit"></div>
+      <div class="c-hp-row">
+        <div class="hp-bar-wrap" style="flex:1">
+          <div class="hp-bar-fill" id="c1-hp-bar" style="width:100%"></div>
+        </div>
+        <div class="c-hp-txt" id="c1-hp-txt">— / —</div>
+      </div>
+      <div class="c-dmg" id="c1-dmg"></div>
+      <div class="c-items" id="c1-items"></div>
+      <div class="c-effects" id="c1-effects"></div>
+    </div>
+
+    <!-- Лог -->
+    <div class="battle-log" id="battle-log">
+      <div class="log-title">События хода</div>
+      <div id="battle-log-lines"></div>
+    </div>
+  </div>
+
+  <!-- ── Summon ──────────────────────────────────────────────── -->
+  <div id="screen-summon" class="screen">
+    <div class="page-header">
+      <h1>👤 Суммон</h1>
+    </div>
+    <div class="summon-list" id="summon-list">
+      <div class="spinner" style="margin:40px auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Crates ──────────────────────────────────────────────── -->
+  <div id="screen-crates" class="screen">
+    <div class="page-header">
+      <h1>🧳 Крейты</h1>
+    </div>
+    <div class="summon-list" id="crates-list">
+      <div class="spinner" style="margin:40px auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Inventory ──────────────────────────────────────────── -->
+  <div id="screen-inventory" class="screen">
+    <div class="page-header">
+      <h1>📦 Инвентарь</h1>
+    </div>
+    <div class="inv-tabs">
+      <div class="inv-tab active" data-tab="units" onclick="switchInvTab('units')">👤 Юниты</div>
+      <div class="inv-tab" data-tab="items" onclick="switchInvTab('items')">🧩 Предметы</div>
+    </div>
+    <div class="inv-content active" id="inv-units"></div>
+    <div class="inv-content" id="inv-items"></div>
+  </div>
+
+  <!-- ── Leaderboard ────────────────────────────────────────── -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="page-header">
+      <h1>🏆 Лидерборд</h1>
+    </div>
+    <div class="lb-list" id="lb-list">
+      <div class="spinner" style="margin:40px auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Clan ───────────────────────────────────────────────── -->
+  <div id="screen-clan" class="screen">
+    <div class="page-header">
+      <h1>🛡 Кланы</h1>
+    </div>
+    <div id="clan-content">
+      <div class="spinner" style="margin:40px auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Bottom Nav ─────────────────────────────────────────── -->
+  <nav id="bottom-nav">
+    <div class="nav-item active" data-screen="menu">
+      <span class="nav-ico">🏠</span><span class="nav-lbl">Меню</span>
+    </div>
+    <div class="nav-item" data-screen="summon">
+      <span class="nav-ico">👤</span><span class="nav-lbl">Суммон</span>
+    </div>
+    <div class="nav-item" data-screen="crates">
+      <span class="nav-ico">🧳</span><span class="nav-lbl">Крейты</span>
+    </div>
+    <div class="nav-item" data-screen="inventory">
+      <span class="nav-ico">📦</span><span class="nav-lbl">Инвентарь</span>
+    </div>
+    <div class="nav-item" data-screen="leaderboard">
+      <span class="nav-ico">🏆</span><span class="nav-lbl">Топ</span>
+    </div>
+    <div class="nav-item" data-screen="clan">
+      <span class="nav-ico">🛡</span><span class="nav-lbl">Клан</span>
+    </div>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- ── Gacha overlay ───────────────────────────────────────── -->
+<div id="gacha-overlay"></div>
+
+<!-- ── Result overlay ─────────────────────────────────────── -->
+<div id="result-overlay">
+  <div class="result-box">
+    <div class="result-icon" id="result-icon">🏆</div>
+    <div class="result-title" id="result-title">Победа!</div>
+    <div class="result-rewards" id="result-rewards"></div>
+    <button class="btn btn-primary btn-full" onclick="closeResult()">В главное меню</button>
+  </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
